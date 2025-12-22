@@ -36,6 +36,15 @@ function initHeroSlider() {
     const images = document.querySelectorAll('.hero-image-container');
     const dots = document.querySelectorAll('.slider-dot');
     
+    // Check if elements exist
+    if (!slides.length || !images.length || !dots.length) {
+        console.warn('Hero slider elements not found');
+        return;
+    }
+    
+    // Initialize first slide as active
+    goToSlide(0);
+    
     // Auto slide every 6 seconds
     slideInterval = setInterval(() => {
         nextSlide();
@@ -50,6 +59,10 @@ function initHeroSlider() {
     });
     
     function goToSlide(index) {
+        // Ensure index is within bounds
+        if (index < 0) index = slides.length - 1;
+        if (index >= slides.length) index = 0;
+        
         // Remove active class from all
         slides.forEach(slide => slide.classList.remove('active'));
         images.forEach(img => img.classList.remove('active'));
@@ -68,6 +81,11 @@ function initHeroSlider() {
         goToSlide(currentSlide);
     }
     
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+        goToSlide(currentSlide);
+    }
+    
     function resetInterval() {
         clearInterval(slideInterval);
         slideInterval = setInterval(() => {
@@ -77,13 +95,57 @@ function initHeroSlider() {
     
     // Pause on hover
     const heroContainer = document.querySelector('.hero-container');
-    heroContainer.addEventListener('mouseenter', () => {
-        clearInterval(slideInterval);
+    if (heroContainer) {
+        heroContainer.addEventListener('mouseenter', () => {
+            clearInterval(slideInterval);
+        });
+        
+        heroContainer.addEventListener('mouseleave', () => {
+            resetInterval();
+        });
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            prevSlide();
+            resetInterval();
+        } else if (e.key === 'ArrowRight') {
+            nextSlide();
+            resetInterval();
+        }
     });
     
-    heroContainer.addEventListener('mouseleave', () => {
-        resetInterval();
-    });
+    // Touch/swipe support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    if (heroContainer) {
+        heroContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        heroContainer.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+    }
+    
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                // Swipe left - next slide
+                nextSlide();
+            } else {
+                // Swipe right - previous slide
+                prevSlide();
+            }
+            resetInterval();
+        }
+    }
 }
 
 // Parallax effect for hero image
@@ -666,3 +728,16 @@ document.querySelectorAll('a, button, .service-card, .project-card').forEach(ele
 
 console.log('%cElite Constructions', 'color: #C9A962; font-size: 24px; font-weight: bold;');
 console.log('%cBuilding Excellence, One Project at a Time', 'color: #B8B8B8; font-size: 14px;');
+
+// Initialize Hero Slider on page load
+window.addEventListener('load', () => {
+    initHeroSlider();
+});
+
+// Also initialize on DOMContentLoaded as a fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeroSlider);
+} else {
+    // DOM is already ready, initialize immediately
+    initHeroSlider();
+}
